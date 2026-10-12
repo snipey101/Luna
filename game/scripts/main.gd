@@ -23,7 +23,7 @@ func _ready() -> void:
 	var seed_value: int = seed_override if seed_override >= 0 else int(_args.get("seed", randi()))
 	_rng.seed = seed_value
 
-	_build_environment()
+	World.add_environment(self)
 	world = World.new()
 	add_child(world)
 	world.build(seed_value)
@@ -62,32 +62,6 @@ func _ready() -> void:
 		_needs_demo.call_deferred()
 	if _args.has("screenshot"):
 		_take_screenshot(_args.screenshot, float(_args.get("shot-delay", 2.0)))
-
-
-func _build_environment() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("#BFE6FF")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#FFF1DC")
-	env.ambient_light_energy = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	env.ssao_enabled = true
-	env.ssao_radius = 0.6
-	env.ssao_intensity = 1.2
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
-
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -30, 0)
-	sun.light_color = Color("#FFF0D2")
-	sun.light_energy = 1.05
-	sun.shadow_enabled = true
-	sun.shadow_blur = 1.5
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sun.directional_shadow_max_distance = 70.0
-	add_child(sun)
 
 
 func _spawn_dogs() -> void:

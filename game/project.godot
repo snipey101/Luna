@@ -7,7 +7,7 @@ config_version=5
 
 config/name="Luna"
 config/description="Help Luna the labrador puppy make 10 dog friends."
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/Splash.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]

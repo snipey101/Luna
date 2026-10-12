@@ -85,7 +85,7 @@ func _on_energy_changed(energy: float) -> void:
 
 func _build_energy() -> void:
 	var panel := PanelContainer.new()
-	var sb := _style(CREAM, 16, 3)
+	var sb := panel_style(CREAM, 16, 3)
 	sb.set_content_margin_all(10)
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.position = Vector2(20, 104)
@@ -113,7 +113,21 @@ func _build_energy() -> void:
 	row.add_child(_energy_bar)
 
 
-func _style(bg: Color, radius: int, border := 4) -> StyleBoxFlat:
+## Shared look for buttons (also used by the splash screen).
+static func style_button(btn: Button) -> void:
+	btn.add_theme_font_size_override("font_size", 24)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		btn.add_theme_color_override(c, BROWN)
+	btn.add_theme_stylebox_override("normal", panel_style(Color("#FFE3A3"), 18))
+	btn.add_theme_stylebox_override("hover", panel_style(Color("#FFD47A"), 18))
+	btn.add_theme_stylebox_override("pressed", panel_style(Color("#F5C060"), 18))
+	var focus := panel_style(Color("#FFD47A"), 18)
+	focus.border_color = Color("#FF6F91")
+	btn.add_theme_stylebox_override("focus", focus)
+
+
+## Cream panel with a brown border (also used by the splash screen).
+static func panel_style(bg: Color, radius: int, border := 4) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.set_corner_radius_all(radius)
@@ -127,7 +141,7 @@ func _style(bg: Color, radius: int, border := 4) -> StyleBoxFlat:
 
 func _build_score() -> void:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _style(CREAM, 22))
+	panel.add_theme_stylebox_override("panel", panel_style(CREAM, 22))
 	panel.position = Vector2(20, 20)
 	add_child(panel)
 	_score_box = panel
@@ -172,7 +186,7 @@ func _build_panel(title: String, body: String, buttons: Array) -> Control:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(center)
 	var panel := PanelContainer.new()
-	var sb := _style(CREAM, 32, 6)
+	var sb := panel_style(CREAM, 32, 6)
 	sb.set_content_margin_all(36)
 	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
@@ -203,15 +217,7 @@ func _build_panel(title: String, body: String, buttons: Array) -> Control:
 		var btn := Button.new()
 		btn.text = spec[0]
 		btn.custom_minimum_size = Vector2(170, 56)
-		btn.add_theme_font_size_override("font_size", 24)
-		btn.add_theme_color_override("font_color", BROWN)
-		btn.add_theme_color_override("font_hover_color", BROWN)
-		btn.add_theme_color_override("font_pressed_color", BROWN)
-		btn.add_theme_color_override("font_focus_color", BROWN)
-		btn.add_theme_stylebox_override("normal", _style(Color("#FFE3A3"), 18))
-		btn.add_theme_stylebox_override("hover", _style(Color("#FFD47A"), 18))
-		btn.add_theme_stylebox_override("pressed", _style(Color("#F5C060"), 18))
-		btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		style_button(btn)
 		btn.pressed.connect(spec[1])
 		row.add_child(btn)
 	return dim
