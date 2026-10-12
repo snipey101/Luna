@@ -7,6 +7,9 @@ const SOUNDS := {
 	"whimper": preload("res://assets/audio/whimper.wav"),
 	"step": preload("res://assets/audio/step.wav"),
 	"win": preload("res://assets/audio/win.wav"),
+	"munch": preload("res://assets/audio/munch.wav"),
+	"tinkle": preload("res://assets/audio/tinkle.wav"),
+	"plop": preload("res://assets/audio/plop.wav"),
 }
 const MUSIC := preload("res://assets/audio/music.wav")
 

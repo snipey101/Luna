@@ -116,7 +116,81 @@ func _run() -> void:
 	var before := GameState.score
 	var was_befriended := timid.befriended
 	await _put_luna_on(timid)
+	if not (timid.befriended and (was_befriended or GameState.score == before + 1)):
+		print("  tired debug: befriended=", timid.befriended, " was=", was_befriended, " score ", before, "->", GameState.score, " state=", Dog.State.keys()[timid.state])
 	check(timid.befriended and (was_befriended or GameState.score == before + 1), "tired timid dog can be befriended")
+
+	# Needs: energy, food bowls, potty, accidents, grass.
+	_park_luna()
+	luna._busy = 0.0
+	GameState.energy = 50.0
+	await _seconds(0.5)
+	check(GameState.energy < 50.0, "energy drains over time")
+	GameState.change_energy(-1000.0)
+	check(GameState.energy == 0.0, "energy never goes below zero")
+	check(is_equal_approx(luna.speed_factor(), GameState.LOW_ENERGY_SPEED), "low energy slows Luna down")
+	for b: FoodBowl in main.bowls:
+		if not b.has_food:
+			b._refill = 0.0  # Luna may have eaten some while running around earlier
+	await _seconds(0.05)
+	GameState.bowls_since_pee = 0
+	GameState.bowls_since_poop = 0
+	var bowl: FoodBowl = main.bowls[0]
+	check(main.bowls.size() == GameState.BOWL_COUNT, "%d food bowls placed" % GameState.BOWL_COUNT)
+	luna.global_position = bowl.global_position
+	await _seconds(0.1)
+	check(not bowl.has_food and GameState.energy >= GameState.BOWL_ENERGY - 1.0, "eating a bowl restores energy")
+	check(GameState.need() == "", "one bowl isn't enough to need the toilet")
+	_park_luna()
+	bowl._refill = 0.01
+	await _seconds(0.1)
+	check(bowl.has_food, "empty bowls refill")
+	luna._busy = 0.0
+	GameState.ate_bowl()
+	check(GameState.need() == "pee", "needs to pee after %d bowls" % GameState.BOWLS_TO_PEE)
+	GameState.ate_bowl()
+	GameState.ate_bowl()
+	check(GameState.need() == "poop", "needs to poop after %d bowls" % GameState.BOWLS_TO_POOP)
+	check(luna.go_potty(), "E goes potty when needed")
+	check(GameState.need() == "pee", "pooping clears the poop need (pee still waiting)")
+	luna._busy = 0.0
+	luna.go_potty()
+	check(GameState.need() == "" and get_tree().get_nodes_in_group("pee_spots").size() > 0, "peeing leaves a pee spot")
+	luna._busy = 0.0
+	check(not luna.go_potty(), "nothing happens when she doesn't need to go")
+	GameState.ate_bowl()
+	GameState.ate_bowl()
+	luna._need_time = GameState.ACCIDENT_TIME - 0.05
+	await _seconds(0.2)
+	check(GameState.need() == "", "waiting too long causes an accident")
+	var lawn: Array = World.LAWNS[0]
+	check(main.world.is_grass(Vector2(lawn[0], lawn[1])) and not main.world.is_grass(Vector2(0, -6)), "lawns count as grass, sand doesn't")
+
+	# Lure: a timid dog comes to sniff a pee spot and stays calm.
+	for spot in get_tree().get_nodes_in_group("pee_spots"):
+		spot.remove_from_group("pee_spots")
+	var shy: Dog = main.dogs.filter(func(d): return d.personality == Breeds.Personality.TIMID and not d.befriended)[0]
+	shy._flee_time = 0.0
+	shy._enter(Dog.State.IDLE)
+	var inward := -shy.global_position
+	inward.y = 0
+	var spot_pos := shy.global_position + inward.normalized() * 3.0
+	luna.global_position = shy.global_position + inward.normalized() * 14.0
+	PottyMark.spawn(main, "pee", spot_pos)
+	await _seconds(0.1)
+	check(shy.state == Dog.State.LURED, "timid dog is lured by a pee spot")
+	for i in 60:
+		if shy.state == Dog.State.SNIFF:
+			break
+		await _seconds(0.1)
+	if shy.state != Dog.State.SNIFF:
+		print("  lure debug: state=", Dog.State.keys()[shy.state], " dog=", shy.global_position, " spot=", spot_pos, " path=", shy._path)
+	check(shy.state == Dog.State.SNIFF, "lured dog sniffs the spot")
+	luna.global_position = shy.global_position + inward.normalized() * 3.0
+	await _seconds(0.5)
+	check(shy.state == Dog.State.SNIFF, "sniffing dog stays calm when Luna walks up")
+	await _put_luna_on(shy)
+	check(shy.befriended, "sniffing timid dog can be befriended")
 
 	# Win at TARGET.
 	var won := [false]

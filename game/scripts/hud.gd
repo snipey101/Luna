@@ -10,6 +10,8 @@ const BROWN := Color("#7A5230")
 const PINK := Color("#FF6F91")
 
 var _score_label: Label
+var _energy_bar: ProgressBar
+var _energy_fill: StyleBoxFlat
 var _score_box: Control
 var _hint: Label
 var _win_panel: Control
@@ -33,13 +35,16 @@ class HeartIcon:
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_score()
+	_build_energy()
 	_build_hint()
 	_win_panel = _build_panel("Luna made 10 friends!", "What a good girl. Every dog in the park loves her.",
 			[["Play Again", func(): play_again.emit()], ["Quit", func(): quit.emit()]])
-	_pause_panel = _build_panel("Paused", "WASD move  ·  Shift sneak  ·  Space bark  ·  Wheel or +/- zoom",
+	_pause_panel = _build_panel("Paused", "WASD move  ·  Shift sneak  ·  Space bark  ·  E potty  ·  Wheel or +/- zoom",
 			[["Resume", func(): set_paused(false)], ["Quit", func(): quit.emit()]])
 	GameState.score_changed.connect(_on_score_changed)
 	_on_score_changed(GameState.score, 0)
+	GameState.energy_changed.connect(_on_energy_changed)
+	_on_energy_changed(GameState.energy)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -66,6 +71,46 @@ func _on_score_changed(score: int, delta: int) -> void:
 		var tw := create_tween()
 		tw.tween_property(_score_box, "scale", Vector2.ONE * (1.2 if delta > 0 else 0.85), 0.08)
 		tw.tween_property(_score_box, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+
+
+func _on_energy_changed(energy: float) -> void:
+	_energy_bar.value = energy
+	if energy < GameState.ENERGY_LOW:
+		_energy_fill.bg_color = Color("#E5484D")
+	elif energy < 50.0:
+		_energy_fill.bg_color = Color("#F5A524")
+	else:
+		_energy_fill.bg_color = Color("#7CC46A")
+
+
+func _build_energy() -> void:
+	var panel := PanelContainer.new()
+	var sb := _style(CREAM, 16, 3)
+	sb.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.position = Vector2(20, 104)
+	add_child(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	panel.add_child(row)
+	var label := Label.new()
+	label.text = "Energy"
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", BROWN)
+	row.add_child(label)
+	_energy_bar = ProgressBar.new()
+	_energy_bar.max_value = GameState.ENERGY_MAX
+	_energy_bar.show_percentage = false
+	_energy_bar.custom_minimum_size = Vector2(120, 18)
+	_energy_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color("#EADBC4")
+	bg.set_corner_radius_all(9)
+	_energy_fill = StyleBoxFlat.new()
+	_energy_fill.set_corner_radius_all(9)
+	_energy_bar.add_theme_stylebox_override("background", bg)
+	_energy_bar.add_theme_stylebox_override("fill", _energy_fill)
+	row.add_child(_energy_bar)
 
 
 func _style(bg: Color, radius: int, border := 4) -> StyleBoxFlat:
@@ -100,7 +145,7 @@ func _build_score() -> void:
 
 func _build_hint() -> void:
 	_hint = Label.new()
-	_hint.text = "WASD move  ·  Shift sneak  ·  Space bark  ·  Make 10 friends!"
+	_hint.text = "WASD move  ·  Shift sneak  ·  Space bark  ·  E potty  ·  Make 10 friends!"
 	_hint.add_theme_font_size_override("font_size", 22)
 	_hint.add_theme_color_override("font_color", BROWN)
 	_hint.add_theme_color_override("font_outline_color", CREAM)

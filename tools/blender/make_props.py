@@ -73,10 +73,11 @@ def flowers():
 
 
 def food_bowl():
-    """Not used in v1; reserved for the future food/energy feature."""
+    """Luna's food. The game hides `Kibble` when the bowl is empty."""
     root = empty("FoodBowl")
     cylinder("Bowl", 0.22, 0.1, (0, 0, 0.05), "#5DA9E9", parent=root, verts=16, smooth=True)
-    cylinder("Kibble", 0.18, 0.02, (0, 0, 0.1), "#B07A4A", parent=root, verts=16)
+    ellipsoid("Kibble", (0.18, 0.18, 0.07), (0, 0, 0.1), "#B07A4A", parent=root,
+              segments=12, rings=6, smooth=False)
     export_glb("food_bowl.glb")
 
 

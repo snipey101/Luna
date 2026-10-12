@@ -11,6 +11,7 @@ var luna: Luna
 var camera: IsoCamera
 var hud: Hud
 var dogs: Array[Dog] = []
+var bowls: Array[FoodBowl] = []
 var _rng := RandomNumberGenerator.new()
 var _args := {}
 
@@ -27,6 +28,7 @@ func _ready() -> void:
 
 	luna = Luna.new()
 	luna.position = LUNA_START
+	luna.world = world
 	add_child(luna)
 	if _args.has("luna-pos"):
 		var xz: PackedStringArray = _args["luna-pos"].split(",")
@@ -43,6 +45,7 @@ func _ready() -> void:
 	luna.camera_yaw = deg_to_rad(camera.yaw_deg)
 
 	_spawn_dogs()
+	_spawn_bowls()
 
 	hud = Hud.new()
 	add_child(hud)
@@ -53,6 +56,8 @@ func _ready() -> void:
 
 	if _args.has("demo"):
 		_demo.call_deferred()
+	if _args.has("needs-demo"):
+		_needs_demo.call_deferred()
 	if _args.has("screenshot"):
 		_take_screenshot(_args.screenshot, float(_args.get("shot-delay", 2.0)))
 
@@ -104,6 +109,22 @@ func _spawn_dogs() -> void:
 			dogs.append(dog)
 
 
+## Bowls on open sand, spread out, not right at the start.
+func _spawn_bowls() -> void:
+	var placed: Array[Vector2] = []
+	for attempt in 300:
+		if placed.size() >= GameState.BOWL_COUNT:
+			break
+		var p := world.random_free_point(_rng, Vector2(LUNA_START.x, LUNA_START.z), 6.0)
+		if placed.any(func(q): return q.distance_to(p) < 9.0):
+			continue
+		placed.append(p)
+		var bowl := FoodBowl.new()
+		bowl.position = Vector3(p.x, 0, p.y)
+		add_child(bowl)
+		bowls.append(bowl)
+
+
 ## Free sand at least 7 m from Luna's start and 4 m from other dogs.
 func _random_spawn() -> Vector2:
 	for attempt in 100:
@@ -144,6 +165,22 @@ func _demo() -> void:
 		d.befriend()
 	luna.global_position = near[0].global_position + Vector3(1.5, 0, 1.5)
 	luna.bark()
+
+
+## Debug helper: low energy on a lawn, next to a bowl, then a pee.
+func _needs_demo() -> void:
+	var lawn: Array = World.LAWNS[0]
+	var poop: bool = _args["needs-demo"] == "poop"
+	# Poop demo happens on sand (an "Oops!"), pee demo on a lawn.
+	luna.global_position = Vector3(lawn[0], 0, lawn[1]) + (Vector3(0, 0, 5.0) if poop else Vector3.ZERO)
+	bowls[0].global_position = luna.global_position + Vector3(2.0, 0, -1.0)
+	GameState.energy = 20.0
+	for i in (4 if poop else 2):
+		GameState.ate_bowl()
+	GameState.energy = 20.0
+	GameState.energy_changed.emit(GameState.energy)
+	await get_tree().create_timer(1.2).timeout
+	luna.go_potty()
 
 
 func _parse_args() -> void:

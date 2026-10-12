@@ -86,6 +86,43 @@ def step():
     return lowpass(out, 0.12)
 
 
+def munch():
+    """Three crunchy bites."""
+    n = int(0.75 * RATE)
+    out = [0.0] * n
+    for k in range(3):
+        start = int(k * 0.24 * RATE)
+        m = int(0.09 * RATE)
+        for i in range(m):
+            out[start + i] += random.uniform(-1, 1) * (1 - i / m) ** 2 * 0.8
+    return lowpass(out, 0.25)
+
+
+def tinkle():
+    """A light, cartoon trickle: quick random high blips."""
+    n = int(1.0 * RATE)
+    out = [0.0] * n
+    t = 0
+    while t < n - int(0.05 * RATE):
+        f = random.uniform(1400, 2400)
+        m = int(0.04 * RATE)
+        for i in range(m):
+            out[t + i] += 0.25 * math.sin(2 * math.pi * f * i / RATE) * (1 - i / m)
+        t += int(random.uniform(0.02, 0.05) * RATE)
+    return [s * env(i, n, 0.05, 0.3) for i, s in enumerate(out)]
+
+
+def plop():
+    n = int(0.3 * RATE)
+    out, ph = [], 0.0
+    for i in range(n):
+        t = i / n
+        f = 320 - 220 * t
+        ph += 2 * math.pi * f / RATE
+        out.append(0.7 * math.sin(ph) * (1 - t) ** 2)
+    return out
+
+
 def tone(freq, dur, kind="tri", vol=0.3, decay=3.0):
     n = int(dur * RATE)
     out = []
@@ -167,3 +204,6 @@ write("whimper.wav", whimper())
 write("step.wav", step())
 write("win.wav", win())
 write("music.wav", music())
+write("munch.wav", munch())
+write("tinkle.wav", tinkle())
+write("plop.wav", plop())

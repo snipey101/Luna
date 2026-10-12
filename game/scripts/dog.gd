@@ -2,7 +2,7 @@ class_name Dog
 extends CharacterBody3D
 ## An NPC dog. Personality (from Breeds) decides how it reacts to Luna.
 
-enum State { IDLE, WANDER, ATTENTIVE, FLEE, TIRED, CHASE, SCARED, RETURN, FOLLOW, HAPPY }
+enum State { IDLE, WANDER, ATTENTIVE, FLEE, TIRED, CHASE, SCARED, RETURN, FOLLOW, HAPPY, LURED, SNIFF }
 
 const P := Breeds.Personality
 const FOLLOW_TIME := 8.0
@@ -29,6 +29,8 @@ var _speed := 0.0
 var _scale := 1.0
 var _heart: Node3D
 var _last_alert_ms := -100000
+var _lure: Node3D            # pee spot being visited
+var _sniffed: Array[int] = [] # pee spots already visited (instance ids)
 
 
 func setup(key: String, home_pos: Vector3, luna_ref: Luna, world_ref: World) -> void:
@@ -73,7 +75,9 @@ func _physics_process(delta: float) -> void:
 
 	match state:
 		State.IDLE, State.WANDER:
-			if not _react_to_luna(dist):
+			if _try_lure():
+				pass
+			elif not _react_to_luna(dist):
 				if state == State.IDLE and _timer <= 0.0:
 					_wander_to_random_point()
 				elif state == State.WANDER and (_timer <= 0.0 or _path_finished()):
@@ -100,6 +104,15 @@ func _physics_process(delta: float) -> void:
 			elif _repath <= 0.0:
 				_go_to(luna.global_position, stats.chase_speed)
 				_repath = 0.2
+		State.LURED:
+			if not is_instance_valid(_lure):
+				_enter(State.IDLE)
+			elif _flat_dist(_lure.global_position) < 0.6 * _scale + 0.3 or _path_finished():
+				_enter(State.SNIFF)
+		State.SNIFF:
+			if _timer <= 0.0 or not is_instance_valid(_lure):
+				_lure = null
+				_enter(State.IDLE)
 		State.SCARED:
 			if _timer <= 0.0:
 				_enter(State.RETURN)
@@ -121,6 +134,26 @@ func _physics_process(delta: float) -> void:
 				_wander_to_random_point()
 
 	_move(delta, to_luna)
+
+
+## Timid dogs can't resist sniffing a fresh pee spot, and stay calm while
+## they do. Each spot only lures each dog once.
+func _try_lure() -> bool:
+	if personality != P.TIMID or befriended:
+		return false
+	for spot: Node3D in get_tree().get_nodes_in_group("pee_spots"):
+		var id := spot.get_instance_id()
+		if id in _sniffed or _flat_dist(spot.global_position) > GameState.LURE_RADIUS:
+			continue
+		_sniffed.append(id)
+		_lure = spot
+		_enter(State.LURED)
+		return true
+	return false
+
+
+func _flat_dist(p: Vector3) -> float:
+	return Vector2(p.x - global_position.x, p.z - global_position.z).length()
 
 
 ## Returns true if the personality reacted (and changed state).
@@ -171,6 +204,7 @@ func _enter(s: State) -> void:
 	anim.sitting = s == State.TIRED
 	anim.panting = s == State.TIRED
 	anim.crouch = s == State.SCARED  # cowering
+	anim.sniffing = s == State.SNIFF
 	match s:
 		State.IDLE:
 			_timer = randf_range(1.5, 4.0)
@@ -181,6 +215,16 @@ func _enter(s: State) -> void:
 			_set_flee_target()
 		State.TIRED:
 			_timer = stats.tired_time
+			_stop()
+		State.LURED:
+			# Stop with the nose over the spot.
+			var from_spot := global_position - _lure.global_position
+			from_spot.y = 0
+			var stand := _lure.global_position + from_spot.normalized() * (0.6 * _scale)
+			_go_to(stand, stats.wander_speed * 2.2)
+			Fx.speech_bubble(self, "Sniff?", Color("#4A90D9"), Vector3(0, _head_height(), 0), 0.7, 0.0, 1.0)
+		State.SNIFF:
+			_timer = GameState.SNIFF_TIME
 			_stop()
 		State.SCARED:
 			_timer = stats.scared_time
@@ -276,11 +320,14 @@ func _move(delta: float, to_luna: Vector3) -> void:
 	var face := Vector3(velocity.x, 0, velocity.z)
 	if state in [State.ATTENTIVE, State.TIRED] or (state == State.FOLLOW and face.length() < 0.3):
 		face = to_luna
+	elif state == State.SNIFF and is_instance_valid(_lure):
+		face = _lure.global_position - global_position
+		face.y = 0
 	if face.length() > 0.2:
 		model.rotation.y = lerp_angle(model.rotation.y, atan2(-face.x, -face.z), 1.0 - exp(-8.0 * delta))
 
 	anim.speed_ratio = Vector2(velocity.x, velocity.z).length() / clampf(2.2 * _scale, 2.5, 5.0)
-	anim.wag = 1.0 if state in [State.ATTENTIVE, State.FOLLOW, State.HAPPY] else 0.2
+	anim.wag = 1.0 if state in [State.ATTENTIVE, State.FOLLOW, State.HAPPY, State.SNIFF] else 0.2
 	if personality == P.AGGRESSIVE and not befriended:
 		anim.wag = 0.0
 	if _heart:

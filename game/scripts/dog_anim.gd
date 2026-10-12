@@ -9,6 +9,10 @@ var wag := 0.3           ## 0..1 tail excitement
 var sitting := false
 var panting := false
 var crouch := false
+var eating := false    ## head down, quick munching bob
+var sniffing := false  ## nose to the ground
+var droopy := false    ## tired: head and ears hang
+var wiggle := false    ## needs the toilet: little side-to-side dance
 
 var model: Node3D
 var _body: Node3D
@@ -71,12 +75,20 @@ func _process(delta: float) -> void:
 		_body.position.y -= _crouch * 0.25 * _height + _sit * 0.2 * _height
 		_body.rotate_object_local(Vector3.RIGHT, _sit * 0.45)
 		_body.rotate_object_local(Vector3.FORWARD, sin(_t) * 0.05 * moving)
+		if wiggle:
+			_body.rotate_object_local(Vector3.UP, sin(Time.get_ticks_msec() * 0.018) * 0.12)
 
 	if _head:
 		_head.transform = _base[_head]
 		var nod := sin(_t * 0.25) * 0.05
 		if panting:
 			nod = sin(Time.get_ticks_msec() * 0.025) * 0.08
+		if eating:
+			nod = -0.55 + sin(Time.get_ticks_msec() * 0.03) * 0.12
+		elif sniffing:
+			nod = -0.5 + sin(Time.get_ticks_msec() * 0.02) * 0.06
+		elif droopy:
+			nod -= 0.15
 		_head.rotate_object_local(Vector3.RIGHT, nod - _sit * 0.3 + _crouch * 0.15)
 
 	if _tail:
@@ -90,4 +102,5 @@ func _process(delta: float) -> void:
 		var ear := _ears[i]
 		ear.transform = _base[ear]
 		var side := -1.0 if i == 0 else 1.0
-		ear.rotate_object_local(Vector3.FORWARD, side * (sin(_t * 2.0) * 0.12 * moving + _crouch * 0.3))
+		var droop := 0.45 if droopy else 0.0
+		ear.rotate_object_local(Vector3.FORWARD, side * (sin(_t * 2.0) * 0.12 * moving + _crouch * 0.3 + droop))

@@ -24,6 +24,9 @@ const YARDS := [
 	{"rect": Rect2(-22, -20, 12, 10), "gate": "+z"},
 	{"rect": Rect2(10, 10, 12, 10), "gate": "-z"},
 ]
+## Unfenced grass lawns out on the sand: nice spots for Luna to go potty.
+## [centre x, centre z, radius]
+const LAWNS := [[6.0, 6.0, 3.0], [-12.0, 0.0, 3.5], [2.0, -12.0, 3.0], [20.0, 0.0, 3.0]]
 const GARDENS := [
 	{"rect": Rect2(10, -20, 10, 8), "gate": ""},
 	{"rect": Rect2(-20, 10, 10, 8), "gate": ""},
@@ -49,6 +52,7 @@ func build(seed_value: int) -> void:
 	_build_ground()
 	for area in YARDS + GARDENS:
 		_build_fenced_area(area.rect, area.gate)
+	_build_lawns()
 	_build_border()
 	_decorate_gardens()
 	_add_ground_detail()
@@ -76,6 +80,16 @@ func is_free(p: Vector2, margin := 0.8) -> bool:
 		if p.distance_to(b[0]) < b[1] + margin:
 			return false
 	return true
+
+
+## True on grass Luna can reach: the yards and the open lawns.
+func is_grass(p: Vector2) -> bool:
+	if in_yard(p):
+		return true
+	for l in LAWNS:
+		if p.distance_to(Vector2(l[0], l[1])) <= l[2]:
+			return true
+	return false
 
 
 func in_yard(p: Vector2) -> bool:
@@ -179,6 +193,27 @@ func _flat_box(size: Vector3, pos: Vector3, color: Color, parent: Node) -> MeshI
 	mi.position = pos
 	parent.add_child(mi)
 	return mi
+
+
+func _build_lawns() -> void:
+	for l in LAWNS:
+		var mi := MeshInstance3D.new()
+		var disc := CylinderMesh.new()
+		disc.top_radius = l[2]
+		disc.bottom_radius = l[2]
+		disc.height = 0.06
+		disc.radial_segments = 28
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = GRASS
+		mat.roughness = 1.0
+		disc.material = mat
+		mi.mesh = disc
+		mi.position = Vector3(l[0], 0.0, l[1])
+		add_child(mi)
+		for i in 3:
+			var a := _rng.randf() * TAU
+			var p := Vector3(l[0], 0.02, l[1]) + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(0.5, l[2] - 0.6)
+			_place(FLOWERS, p, _rng.randf_range(1.0, 1.5), false)
 
 
 func _build_fenced_area(rect: Rect2, gate: String) -> void:

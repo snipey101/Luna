@@ -72,6 +72,37 @@ static func popup(parent: Node, text: String, color: Color, pos: Vector3, scale_
 	speech_bubble(parent, text, color, pos, scale_f)
 
 
+## A quick burst of little golden stars, e.g. for "Good girl!".
+static func sparkle(parent: Node, pos: Vector3) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.amount = 16
+	p.lifetime = 0.8
+	p.explosiveness = 0.9
+	p.direction = Vector3.UP
+	p.spread = 70.0
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 3.0
+	p.gravity = Vector3(0, -3.0, 0)
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.2
+	var star := SphereMesh.new()
+	star.radius = 0.05
+	star.height = 0.1
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("#FFD166")
+	mat.emission_enabled = true
+	mat.emission = Color("#FFD166")
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	star.material = mat
+	p.mesh = star
+	p.position = pos
+	parent.add_child(p)
+	p.emitting = true
+	p.finished.connect(p.queue_free)
+
+
 ## Rounded-rectangle bubble with a tail, in the XY plane, tail tip at the
 ## origin. Drawn as an outline layer then a fill layer (no depth test, so
 ## triangle order decides what's on top).

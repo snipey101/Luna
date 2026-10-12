@@ -19,3 +19,4 @@ See [ADR 0001](0001-record-architecture-decisions.md) for how these work. To add
 | [0013](0013-configurable-camera-zoom.md) | Configurable camera zoom, defaulting to 200% | Accepted |
 | [0014](0014-zoom-scaled-notice-ranges-and-alerts.md) | Scale notice ranges to the zoom, and show "!" alerts | Accepted |
 | [0015](0015-befriend-scared-aggressive-dogs.md) | Aggressive dogs can be befriended just after being barked at | Accepted |
+| [0016](0016-energy-food-and-potty.md) | Energy, food bowls, and peeing and pooping | Accepted |
