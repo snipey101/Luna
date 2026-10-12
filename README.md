@@ -50,5 +50,8 @@ mkdir -p build && $GODOT --headless --path game --export-release "Windows Deskto
 
 Debug flags (after `--`; any flag skips the title screen unless `--splash` is given): `--seed=N`, `--luna-pos=x,z`, `--zoom=1.5`, `--cam-size=48`, `--demo`, `--needs-demo[=poop]`, `--splash [--autoplay]`, `--screenshot=out.png --shot-delay=2`.
 
+## Plans
+Upcoming work is specced in [`docs/specs/`](docs/specs/README.md).
+
 ## Design decisions
 Architecture Decision Records live in [`docs/adr/`](docs/adr/README.md). Read them before changing core approaches, and add a new one when you make a significant decision.
