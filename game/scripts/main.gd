@@ -14,11 +14,13 @@ var dogs: Array[Dog] = []
 var bowls: Array[FoodBowl] = []
 var _rng := RandomNumberGenerator.new()
 var _args := {}
+## Tests set this before adding Main to get a fixed layout.
+var seed_override := -1
 
 
 func _ready() -> void:
 	_parse_args()
-	var seed_value: int = int(_args.get("seed", randi()))
+	var seed_value: int = seed_override if seed_override >= 0 else int(_args.get("seed", randi()))
 	_rng.seed = seed_value
 
 	_build_environment()

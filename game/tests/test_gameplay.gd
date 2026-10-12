@@ -3,6 +3,8 @@ extends Node
 ##   godot --headless --path game res://tests/test_gameplay.tscn
 ## Exits with code 0 if everything passes, 1 otherwise.
 
+const TEST_SEED := 2026
+
 var main: Node3D
 var failures := 0
 
@@ -10,6 +12,9 @@ var failures := 0
 func _ready() -> void:
 	GameState.reset()
 	main = load("res://scenes/Main.tscn").instantiate()
+	# Fixed layout: random spawns occasionally made geometry-dependent checks
+	# flaky (e.g. a dog fleeing into a corner). Wander choices stay random.
+	main.seed_override = TEST_SEED
 	add_child(main)
 	main.camera.set_zoom(2.0)  # don't depend on the player's saved zoom
 	await _seconds(0.3)
@@ -158,6 +163,30 @@ func _run() -> void:
 	check(GameState.need() == "" and get_tree().get_nodes_in_group("pee_spots").size() > 0, "peeing leaves a pee spot")
 	luna._busy = 0.0
 	check(not luna.go_potty(), "nothing happens when she doesn't need to go")
+	var key_e := InputEventKey.new()
+	key_e.physical_keycode = KEY_E
+	key_e.pressed = true
+	Input.parse_input_event(key_e)
+	await _seconds(0.1)
+	Input.action_release("potty")
+	var said_not_now := luna.find_children("*", "Label3D", true, false).any(func(l): return l.text == "Not now!")
+	check(said_not_now, "pressing E when she doesn't need to go says \"Not now!\"")
+	# The real key path: an E key press reaches Luna and she pees.
+	GameState.ate_bowl()
+	GameState.ate_bowl()
+	luna._busy = 0.0
+	var spots_before := get_tree().get_nodes_in_group("pee_spots").size()
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_E
+	key.pressed = true
+	Input.parse_input_event(key)
+	await _seconds(0.1)
+	key = key.duplicate()
+	key.pressed = false
+	Input.parse_input_event(key)
+	check(GameState.need() == "" and get_tree().get_nodes_in_group("pee_spots").size() == spots_before + 1, "pressing E makes Luna pee")
+	luna._busy = 0.0
+	GameState.bowls_since_poop = 0
 	GameState.ate_bowl()
 	GameState.ate_bowl()
 	luna._need_time = GameState.ACCIDENT_TIME - 0.05

@@ -27,6 +27,7 @@ var _busy := 0.0        ## eating or going potty: can't move
 var _need_time := 0.0   ## how long the current need has been ignored
 var _need_nag := 0.0    ## time until the next "Gotta go!" bubble
 var _nag_bubble: Node3D
+var _not_now_ms := -100000
 
 
 func _ready() -> void:
@@ -107,7 +108,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if controls_enabled and event.is_action_pressed("bark"):
 		bark()
 	elif controls_enabled and event.is_action_pressed("potty"):
-		go_potty()
+		if not go_potty() and _busy <= 0.0 and GameState.need() == "":
+			_not_now()
 
 
 func bark() -> void:
@@ -162,6 +164,15 @@ func go_potty(accident := false) -> bool:
 	else:
 		Fx.popup(self, "Oops!", Color("#C0763A"), Vector3(0, HEAD_HEIGHT, 0), 0.8)
 	return true
+
+
+## Feedback for pressing E when Luna doesn't need to go (rate-limited).
+func _not_now() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _not_now_ms < 1200:
+		return
+	_not_now_ms = now
+	Fx.popup(self, "Not now!", Color("#7A5230"), Vector3(0, HEAD_HEIGHT, 0), 0.7)
 
 
 func _update_needs(delta: float) -> void:
